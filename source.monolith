@@ -1,0 +1,19 @@
+./Aether{
+	/Artifact.h{
+		
+	}
+	/Monolith.h{
+		
+	}
+	./testFolder{
+		./folder 2{
+			/Header.h{
+				
+			}
+		}
+		/types.h{
+			
+		}
+	}
+}
+
