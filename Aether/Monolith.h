@@ -1,8 +1,8 @@
 #pragma once
 #include "Artifact.h"
 
-#include <filesystem>
 #include <fstream>
+#include <filesystem>
 namespace fs = std::filesystem;
 
 #include <unordered_set>
@@ -10,7 +10,8 @@ namespace fs = std::filesystem;
 
 namespace Aether {
 	//Code Generator & Artifact Interpreter
-	//static std::unordered_set<STR> labels({ "+", "-", "*", "/", "%", "//", "++", "--", "+=", "-=", "=",}); labels are all that are undefined
+	static std::unordered_set<STR> filterFileExt({ ".h", ".cpp", ".hpp", ".c"});
+	static std::unordered_set<STR> filterFolderExt({ "." });
 	const STR folderLabel = "./";
 	const STR fileLabel = "/";
 	const STR startBlock = "{\n";
@@ -30,7 +31,7 @@ namespace Aether {
 		bool lastFolder = false;
 
 		STR root;
-		STR monolith;
+		STR sourceMonolith;
 		std::vector<STR> folderStack;
 		Monolith() = default;
 		Monolith(STR rootFolder) {
@@ -40,22 +41,22 @@ namespace Aether {
 			std::cout << "Root Folder: " + root << std::endl;
 			parseFolder(root);
 			printMonolith();
-			Artifact::printAether();
 			saveMonolith();
-	
+			Artifact::printAether();
+			Artifact::saveAether();
 		}
 
 		void printMonolith()
 		{
-			std::cout << "> > > Monolith < < < " << std::endl << std::endl;
-			std::cout << monolith << std::endl;
+			std::cout << ">>> Monolith <<< " << std::endl << std::endl;
+			std::cout << sourceMonolith << std::endl;
 		}
 
 		void saveMonolith()
 		{
 			std::ofstream outfile;
 			outfile.open("source.monolith");
-			outfile << monolith << std::endl;
+			outfile << sourceMonolith << std::endl;
 			outfile.close();
 		}
 
@@ -67,11 +68,16 @@ namespace Aether {
 		}
 
 		void parseObj(STR object) {
-			//std::cout << "Parse object: " + object << std::endl;
+			std::cout << "Parse object: " + object << std::endl;
 			if (fs::is_regular_file(object)) {
-				parseFile(object);
+				size_t ix = object.find_last_of('.');
+				if (ix != -1) {
+					STR ext = object.substr(ix);
+					if (filterFileExt.find(ext) == filterFileExt.end()) return;
+					parseFile(object);
+				}
 			}
-			else {
+			else if(fs::is_directory(object)) {
 				parseFolder(object);
 			}
 		}
@@ -84,17 +90,20 @@ namespace Aether {
 			createFileArtifact(NAME);
 
 			appendIddented(obj);
-			appendIddented("\n", 1);
+
+			STR fileContent = dumpFileToStr(object);
+			appendIddented(fileContent + "\n", 1);
+
 			appendIddented(endBlock, -1);
 			lastFolder = false;
 		}
 
 		void parseFolder(STR object) {
+			STR NAME = object.substr(object.find_last_of('\\') + 1);
+			if (NAME.find(".") != -1) { return; };
 
 			if (lastFolder) blockCount += 1;
-			STR NAME = object.substr(object.find_last_of('\\') + 1);
 			STR obj = folderLabel + NAME + startBlock;
-
 			createFolderArtifact(NAME);
 
 			appendIddented(obj);
@@ -127,8 +136,8 @@ namespace Aether {
 			blockCount += offset;
 			if (blockCount < 0) blockCount = 0;
 			for (int i = 0; i < blockCount; i++)
-				monolith += ('\t');
-			monolith.append(value);
+				sourceMonolith += ('\t');
+			sourceMonolith.append(value);
 		}
 
 		STR dumpFileToStr(STR path) {

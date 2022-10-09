@@ -3,10 +3,12 @@
 #include <set>
 #include <unordered_map>
 #include <string>
+#include <fstream>
 
 namespace Aether {
 
 	class Artifact;
+
 	typedef std::string STR;		//Human readable Token (unique Artifact ID : UID)
 	typedef Artifact* LINK;		
 	typedef size_t HASH;
@@ -16,6 +18,8 @@ namespace Aether {
 	typedef std::unordered_map<HASH, LINK> AETHER;		//([un]ordered) set of UAIDs [ &[&a1, &a2, &a3] , &[&b1, &b2, &b3] ]
 
 	const STR linkChar = "::";
+	const STR dependencyChar = "<-";
+	const STR dependeeChar = "->";
 
 	class Artifact
 	{
@@ -42,24 +46,38 @@ namespace Aether {
 		}
 
 		static void printAether() {
-			std::cout << ">>> AETHER ARTIFACTS <<< " << std::endl << std::endl;
+			sourceAether = "";
+			sourceAether += ">>> AETHER ARTIFACTS <<< \n\n";
 
 			for (AETHER::iterator it = aether.begin(); it != aether.end(); it++)
 			{
+				sourceAether += it->second->getName() + "{\n";
+
 				ARTIFACTS* dependencies = it->second->getDependencies();
+				//size_t tabs = 1;
 				for (ARTIFACTS::iterator _it = dependencies->begin(); _it != dependencies->end(); _it++)
 				{
-					//std::cout << dependencies->find(*_it) << std::endl;
+					//for (size_t t = 0; t < tabs; t++) std::cout << "\t";
+					sourceAether += "\t" + dependencyChar + (*_it)->getName() + "\n";
 				}
 
 				ARTIFACTS* dependees = it->second->getDependees();
 				for (ARTIFACTS::iterator _it = dependees->begin(); _it != dependees->end(); _it++)
 				{
-
+					//for (size_t t = 0; t < tabs; t++) std::cout << "\t";
+					sourceAether += "\t" + dependeeChar + (*_it)->getName() + "\n";
 				}
 
+				sourceAether += "}\n";
 			}
+			std::cout << sourceAether;
+		}
 
+		static void saveAether() {
+			std::ofstream outfile;
+			outfile.open("source.aether");
+			outfile << sourceAether << std::endl;
+			outfile.close();
 		}
 
 	protected:
@@ -75,6 +93,7 @@ namespace Aether {
 		}
 
 		static AETHER aether;
+		static STR sourceAether;
 
 		Artifact(STR NAME) {
 			setNAME(NAME);
@@ -131,6 +150,7 @@ namespace Aether {
 		ARTIFACTS inheritances;
 	};
 
+	STR Artifact::sourceAether;
 	AETHER Artifact::aether = AETHER();
 
 }
