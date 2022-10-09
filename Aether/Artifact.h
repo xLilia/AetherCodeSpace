@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <set>
-#include <map>
 #include <unordered_map>
 #include <string>
 
@@ -10,12 +9,13 @@ namespace Aether {
 	class Artifact;
 	typedef std::string STR;		//Human readable Token (unique Artifact ID : UID)
 	typedef Artifact* LINK;		
-	typedef std::set<LINK> ARTIFACTS;			
 	typedef size_t HASH;
+	typedef std::vector<LINK> UAID;
+	typedef std::set<LINK> ARTIFACTS;
 	typedef std::pair<HASH, LINK> HASHED_LINK;			//ordered set of unique Artifacts [&a1, &a2, &a3]
 	typedef std::unordered_map<HASH, LINK> AETHER;		//([un]ordered) set of UAIDs [ &[&a1, &a2, &a3] , &[&b1, &b2, &b3] ]
 
-	const STR dependencyChar = "->";
+	const STR linkChar = "::";
 
 	class Artifact
 	{
@@ -24,59 +24,95 @@ namespace Aether {
 			LINK art = findArtifact(NAME);
 			if (art == nullptr) {
 				art = new Artifact(NAME);
-				aether.insert(HASHED_LINK(art->getHash(NAME), art));
 			}
 			return art;
 		}
 
 		static LINK findArtifact(STR NAME) {
 			auto elem = aether.find(Artifact::getHash(NAME));
-			if (elem != aether.end()) {
-				return elem->second;
-			}
-			return nullptr;
+			return elem != aether.end() ? elem->second : nullptr;
+		}
+		
+		ARTIFACTS* getDependencies() {
+			return &dependencies;
 		}
 
+		ARTIFACTS* getDependees() {
+			return &dependees;
+		}
+
+		static void printAether() {
+			std::cout << ">>> AETHER ARTIFACTS <<< " << std::endl << std::endl;
+
+			for (AETHER::iterator it = aether.begin(); it != aether.end(); it++)
+			{
+				ARTIFACTS* dependencies = it->second->getDependencies();
+				for (ARTIFACTS::iterator _it = dependencies->begin(); _it != dependencies->end(); _it++)
+				{
+					//std::cout << dependencies->find(*_it) << std::endl;
+				}
+
+				ARTIFACTS* dependees = it->second->getDependees();
+				for (ARTIFACTS::iterator _it = dependees->begin(); _it != dependees->end(); _it++)
+				{
+
+				}
+
+			}
+
+		}
+
+	protected:
+
 		size_t getHash() {
-			return getHash(name);
+			return getHash(getName());
 		}
 
 		static HASH getHash(STR name) {
+			HASH hash = 0;
 			std::hash<STR> hasher;
 			return hasher(name);
 		}
 
-	protected:
 		static AETHER aether;
 
 		Artifact(STR NAME) {
 			setNAME(NAME);
+			aether.insert(HASHED_LINK(this->getHash(), this));
+		}
+
+		STR getName() {
+			STR nameRefSequence = ""; //human readable UAID : name1->name2->name3->name4
+			for (UAID::iterator it = uniqueArtifactID.begin(); it != uniqueArtifactID.end(); it++) {
+				nameRefSequence += (*it)->Name;
+				if (it != --uniqueArtifactID.end()) nameRefSequence += linkChar;
+			};
+			return nameRefSequence;
 		}
 
 		LINK setNAME(STR name) {
-			this->name = name;
+			this->Name = name;
 			STR parent = "";
 			size_t ix = -1;
 			do {
-				ix = name.find_last_of(dependencyChar);
+				ix = name.find_last_of(linkChar);
 				if (ix != -1) {
 					parent = name.substr(0, ix - 1);
-					if (parent == this->name) continue;
 
-					LINK link = findArtifact(parent);
-					if (link == nullptr) {
-						link = createArtifact(parent);
-					}
+					LINK link = findArtifact(parent); //validates existance of UAIDs
+					if (!link) throw std::runtime_error("INVALID LINK");
 					link->addDependee(this);
-					addDependency(link);
-
+					//addDependency(link);
+					uniqueArtifactID.insert(uniqueArtifactID.begin(),link);
 					name = name.substr(0, ix - 1);
 				}
 			} while (ix != -1);
-			//UAID = this;
-			return this;
+			ix = Name.find_last_of(linkChar);
+			if (ix != -1)
+				this->Name = Name.substr(ix+linkChar.size()-1);
+			uniqueArtifactID.insert(uniqueArtifactID.end(),this);
+ 			return this;
 		}
-
 
 		void addLabel(LINK label) {
 		};
@@ -87,8 +123,8 @@ namespace Aether {
 			dependees.insert(dependee);
 		};
 
-		STR name; //com->phi->vec3
-		//LINK UAID; //com->phi->vec3
+		STR Name; //human readable name representing self Name : name4 (hash?)
+		UAID uniqueArtifactID; //Name ref sequence [&name1,&name2,&name3,&name4]
 		ARTIFACTS labels; //[Type, float]
 		ARTIFACTS dependencies;
 		ARTIFACTS dependees;

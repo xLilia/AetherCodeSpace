@@ -5,10 +5,12 @@
 #include <fstream>
 namespace fs = std::filesystem;
 
+#include <unordered_set>
 
 
 namespace Aether {
 	//Code Generator & Artifact Interpreter
+	//static std::unordered_set<STR> labels({ "+", "-", "*", "/", "%", "//", "++", "--", "+=", "-=", "=",}); labels are all that are undefined
 	const STR folderLabel = "./";
 	const STR fileLabel = "/";
 	const STR startBlock = "{\n";
@@ -19,7 +21,7 @@ namespace Aether {
 	public:
 		static Monolith init(STR rootFolder) {
 			static Monolith instance = Monolith(rootFolder);
-			return instance; //FIX
+			return instance;
 		}
 
 		~Monolith() = default;
@@ -34,22 +36,27 @@ namespace Aether {
 		Monolith(STR rootFolder) {
 			//Initialize codespace:
 			std::cout << "INIT MONOLITH" << std::endl << std::endl;
-
 			root = rootFolder;
 			std::cout << "Root Folder: " + root << std::endl;
 			parseFolder(root);
+			printMonolith();
+			Artifact::printAether();
+			saveMonolith();
+	
+		}
+
+		void printMonolith()
+		{
 			std::cout << "> > > Monolith < < < " << std::endl << std::endl;
 			std::cout << monolith << std::endl;
+		}
 
-			std::cout << "DUMP ARTIFACTS" << std::endl << std::endl;
-			//Artifact::printAether();
-
+		void saveMonolith()
+		{
 			std::ofstream outfile;
 			outfile.open("source.monolith");
 			outfile << monolith << std::endl;
 			outfile.close();
-			//parse all files & folders below recursively into Monolith
-			//self-reference, self-abstract, self-modify
 		}
 
 		void parseDirectory(STR dir) {
@@ -60,7 +67,7 @@ namespace Aether {
 		}
 
 		void parseObj(STR object) {
-			std::cout << "Parse object: " + object << std::endl;
+			//std::cout << "Parse object: " + object << std::endl;
 			if (fs::is_regular_file(object)) {
 				parseFile(object);
 			}
@@ -102,7 +109,7 @@ namespace Aether {
 			STR folderID;
 			for (int i = 0; i < folderStack.size(); i++) {
 				folderID += folderStack[i];
-				if (i < folderStack.size() - 1) folderID += Aether::dependencyChar;
+				if (i < folderStack.size() - 1) folderID += Aether::linkChar;
 			}
 			Artifact::createArtifact(folderID);
 		}
@@ -111,9 +118,9 @@ namespace Aether {
 			STR folderID;
 			for (int i = 0; i < folderStack.size(); i++) {
 				folderID += folderStack[i];
-				if (i < folderStack.size() - 1) folderID += Aether::dependencyChar;
+				if (i < folderStack.size() - 1) folderID += Aether::linkChar;
 			}
-			Artifact::createArtifact(folderID + Aether::dependencyChar + name);
+			Artifact::createArtifact(folderID + Aether::linkChar + name);
 		}
 
 		void appendIddented(STR value, int offset = 0) {

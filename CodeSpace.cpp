@@ -4,6 +4,6 @@
 
 int main()
 {
-    Aether::Monolith::init("D:\\Development\\C++\\Codespace\\source\\Aether");
+    Aether::Monolith::init("D:\\Development\\C++");
 }
 
